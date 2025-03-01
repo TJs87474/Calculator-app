@@ -1,203 +1,189 @@
 import 'package:flutter/material.dart';
-import 'buttons.dart';
-import 'package:math_expressions/math_expressions.dart';
+
+const operatorColor = Color(0xff272727);
+const buttonColor = Color.fromARGB(255, 98, 98, 98);
+const orangeColor = Color(0xffD9802E);
 
 void main() {
-  runApp(MyApp());
+  runApp(MaterialApp(home: Calculator()));
 }
 
-class MyApp extends StatelessWidget {
+class Calculator extends StatefulWidget {
+  const Calculator({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomePage(),
-    ); // MaterialApp
+  State<Calculator> createState() => _CalculatorState();
+}
+
+class _CalculatorState extends State<Calculator> {
+  String input = "";
+  String output = "";
+  bool hideInput = false;
+  double outputSize = 3.0;
+  bool hasOperator = false;
+
+  onButtonClick(String value) {
+    if (value == "AC") {
+      input = "";
+      output = "";
+      hasOperator = false;
+    } else if (value == "Back") {
+      if (input.isNotEmpty) {
+        String lastChar = input[input.length - 1];
+        input = input.substring(0, input.length - 1);
+        
+        // Reset operator flag if an operator was removed
+        if ("+-*/".contains(lastChar)) {
+          hasOperator = false;
+        }
+      }
+    } else if (value == "=") {
+      if (input.isNotEmpty) {
+        try {
+          output = evaluateExpression(input).toString();
+          input = output;
+          hideInput = true;
+          outputSize = 52;
+          hasOperator = false;
+        } catch (e) {
+          output = "Error";
+        }
+      }
+    } else {
+      // Allow only one operator and only in the middle
+      if ("+-*/".contains(value)) {
+        if (input.isNotEmpty && !hasOperator) {
+          input += value;
+          hasOperator = true;
+        }
+      } else {
+        // Ensure no more than two numbers
+        List<String> parts = input.split(RegExp(r'[\+\-\*/]'));
+        if (parts.length < 2 || parts[1].isEmpty) {
+          input += value;
+        }
+      }
+      hideInput = false;
+      outputSize = 34;
+    }
+
+    setState(() {});
   }
-}
 
-class HomePage extends StatefulWidget {
-  @override
-  _HomePageState createState() => _HomePageState();
-}
+  int evaluateExpression(String expression) {
+    expression = expression.replaceAll("x", "*");
 
-class _HomePageState extends State<HomePage> {
-  var userInput = '';
-  var answer = '';
+    RegExp regex = RegExp(r'^(\d+)\s*([\+\-\*/])\s*(\d+)$');
+    Match? match = regex.firstMatch(expression);
 
-  // Array of button
-  final List<String> buttons = [
-    'C',
-    '+/-',
-    '%',
-    'DEL',
-    '7',
-    '8',
-    '9',
-    '/',
-    '4',
-    '5',
-    '6',
-    'x',
-    '1',
-    '2',
-    '3',
-    '-',
-    '0',
-    '.',
-    '=',
-    '+',
-  ];
+    if (match == null) throw Exception("Invalid expression");
+
+    int num1 = int.parse(match.group(1)!);
+    String operator = match.group(2)!;
+    int num2 = int.parse(match.group(3)!);
+
+    switch (operator) {
+      case "+":
+        return num1 + num2;
+      case "-":
+        return num1 - num2;
+      case "*":
+        return num1 * num2;
+      case "/":
+        if (num2 == 0) throw Exception("Division by zero");
+        return num1 ~/ num2;
+      default:
+        throw Exception("Unknown operator");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: new AppBar(
-        title: new Text("Calculator"),
-      ), //AppBar
-      backgroundColor: Colors.white38,
+      backgroundColor: Colors.black,
       body: Column(
-        children: <Widget>[
+        children: [
           Expanded(
             child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
               child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    Container(
-                      padding: EdgeInsets.all(20),
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        userInput,
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.all(15),
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        answer,
-                        style: TextStyle(
-                            fontSize: 30,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    )
-                  ]),
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    hideInput ? "" : input,
+                    style: TextStyle(fontSize: 48, color: Colors.white),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    output,
+                    style: TextStyle(fontSize: outputSize, color: Colors.white),
+                  ),
+                  SizedBox(height: 30),
+                ],
+              ),
             ),
           ),
-          Expanded(
-            flex: 3,
-            child: Container(
-              child: GridView.builder(
-                  itemCount: buttons.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4),
-                  itemBuilder: (BuildContext context, int index) {
-                    // Clear Button
-                    if (index == 0) {
-                      return MyButton(
-                        buttontapped: () {
-                          setState(() {
-                            userInput = '';
-                            answer = '0';
-                          });
-                        },
-                        buttonText: buttons[index],
-                        color: Colors.blue[50],
-                        textColor: Colors.black,
-                      );
-                    }
-
-                    // +/- button
-                    else if (index == 1) {
-                      return MyButton(
-                        buttonText: buttons[index],
-                        color: Colors.blue[50],
-                        textColor: Colors.black,
-                      );
-                    }
-                    // % Button
-                    else if (index == 2) {
-                      return MyButton(
-                        buttontapped: () {
-                          setState(() {
-                            userInput += buttons[index];
-                          });
-                        },
-                        buttonText: buttons[index],
-                        color: Colors.blue[50],
-                        textColor: Colors.black,
-                      );
-                    }
-                    // Delete Button
-                    else if (index == 3) {
-                      return MyButton(
-                        buttontapped: () {
-                          setState(() {
-                            userInput =
-                                userInput.substring(0, userInput.length - 1);
-                          });
-                        },
-                        buttonText: buttons[index],
-                        color: Colors.blue[50],
-                        textColor: Colors.black,
-                      );
-                    }
-                    // Equal_to Button
-                    else if (index == 18) {
-                      return MyButton(
-                        buttontapped: () {
-                          setState(() {
-                            equalPressed();
-                          });
-                        },
-                        buttonText: buttons[index],
-                        color: Colors.orange[700],
-                        textColor: Colors.white,
-                      );
-                    }
-
-                    //  other buttons
-                    else {
-                      return MyButton(
-                        buttontapped: () {
-                          setState(() {
-                            userInput += buttons[index];
-                          });
-                        },
-                        buttonText: buttons[index],
-                        color: isOperator(buttons[index])
-                            ? Colors.blueAccent
-                            : Colors.white,
-                        textColor: isOperator(buttons[index])
-                            ? Colors.white
-                            : Colors.black,
-                      );
-                    }
-                  }), // GridView.builder
-            ),
+          Row(
+            children: [
+              button(text: "AC", buttonBgColor: operatorColor, tColor: orangeColor),
+              button(text: "Back", buttonBgColor: operatorColor, tColor: orangeColor),
+              button(text: "/", buttonBgColor: operatorColor, tColor: orangeColor),
+            ],
+          ),
+          Row(
+            children: [
+              button(text: "7"),
+              button(text: "8"),
+              button(text: "9"),
+              button(text: "x", tColor: orangeColor, buttonBgColor: operatorColor),
+            ],
+          ),
+          Row(
+            children: [
+              button(text: "4"),
+              button(text: "5"),
+              button(text: "6"),
+              button(text: "-", tColor: orangeColor, buttonBgColor: operatorColor),
+            ],
+          ),
+          Row(
+            children: [
+              button(text: "1"),
+              button(text: "2"),
+              button(text: "3"),
+              button(text: "+", tColor: orangeColor, buttonBgColor: operatorColor),
+            ],
+          ),
+          Row(
+            children: [
+              button(text: "0"),
+              button(text: "=", buttonBgColor: orangeColor),
+            ],
           ),
         ],
       ),
     );
   }
 
-  bool isOperator(String x) {
-    if (x == '/' || x == 'x' || x == '-' || x == '+' || x == '=') {
-      return true;
-    }
-    return false;
-  }
-
-// function to calculate the input operation
-  void equalPressed() {
-    String finaluserinput = userInput;
-    finaluserinput = userInput.replaceAll('x', '*');
-
-    Parser p = Parser();
-    Expression exp = p.parse(finaluserinput);
-    ContextModel cm = ContextModel();
-    double eval = exp.evaluate(EvaluationType.REAL, cm);
-    answer = eval.toString();
+  Widget button({required String text, Color tColor = Colors.white, Color buttonBgColor = buttonColor}) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.all(8),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: buttonBgColor,
+            padding: const EdgeInsets.all(22),
+          ),
+          onPressed: () => onButtonClick(text),
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 18, color: tColor, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
   }
 }
