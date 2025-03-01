@@ -46,7 +46,7 @@ class _CalculatorState extends State<Calculator> {
           outputSize = 52;
           hasOperator = false;
         } catch (e) {
-          output = "Error";
+          output = "Cannot divide by 0";
         }
       }
     } else {
